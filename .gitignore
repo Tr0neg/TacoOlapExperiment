@@ -1,0 +1,7 @@
+.vs/
+out/
+build/
+*.exe
+*.obj
+*.pdb
+*.ipch
