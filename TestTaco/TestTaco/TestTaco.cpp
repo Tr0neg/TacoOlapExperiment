@@ -1,8 +1,7 @@
-﻿#include "TensorComparison.h"
+﻿#include "TensorExperiment.h"
 
 int main()
 {
-    compareTensorBuilding();
-
+    runTensorExperiment();
     return 0;
 }

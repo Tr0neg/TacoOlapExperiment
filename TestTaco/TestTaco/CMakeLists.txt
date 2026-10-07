@@ -4,6 +4,7 @@
     "TensorBuilder.cpp"
     "MemoryInfo.cpp"
     "TensorComparison.cpp"
+    "TensorExperiment.cpp"
 )
 
 target_include_directories(TestTaco PRIVATE
