@@ -3,6 +3,7 @@
     "DataGenerator.cpp"
     "TensorBuilder.cpp"
     "MemoryInfo.cpp"
+    "TensorComparison.cpp"
 )
 
 target_include_directories(TestTaco PRIVATE
