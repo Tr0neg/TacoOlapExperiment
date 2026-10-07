@@ -24,3 +24,9 @@ bool compareTensors(
     const taco::Tensor<double>& tensor1,
     const taco::Tensor<double>& tensor2
 );
+
+void GenerateToTensor(
+    taco::Tensor<double>& tensor,
+    int valueCount,
+    unsigned seed
+);

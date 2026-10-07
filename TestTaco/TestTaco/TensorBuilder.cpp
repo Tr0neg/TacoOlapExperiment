@@ -262,7 +262,7 @@ std::vector<size_t> calculateSparseIdxCount(
 
 DimensionStructure calculateDimensionStructure(
     int dimensionCount,
-    int elementsPerDimension,
+    const std::vector<int>& dimensions,
     const std::vector<bool>& denseDimensions)
 {
     DimensionStructure result;
@@ -296,7 +296,7 @@ DimensionStructure calculateDimensionStructure(
         {
             result.denseProduct[d] *=
                 static_cast<size_t>(
-                    elementsPerDimension
+                    dimensions[d]
                     );
         }
     }
@@ -312,7 +312,7 @@ ModeIndices buildModeIndices(
     const std::vector<size_t>& denseProduct,
     size_t uniqueCount,
     int dimensionCount,
-    int elementsPerDimension,
+    const std::vector<int>& dimensions,
     const std::vector<bool>& denseDimensions)
 {
     ModeIndices result;
@@ -325,7 +325,7 @@ ModeIndices buildModeIndices(
     {
         if (denseDimensions[d])
         {
-            result.allIdx[d] = { elementsPerDimension };
+            result.allIdx[d] = { dimensions[d] };
             continue;
         }
 
@@ -367,7 +367,7 @@ ModeIndices buildModeIndices(
                         denseOffset =
                             denseOffset *
                             static_cast<size_t>(
-                                elementsPerDimension
+                                dimensions[k]
                                 ) +
                             static_cast<size_t>(
                                 coordinates[
@@ -390,7 +390,7 @@ ModeIndices buildModeIndices(
                         parent =
                             parent *
                             static_cast<size_t>(
-                                elementsPerDimension
+                                dimensions[k]
                                 ) +
                             static_cast<size_t>(
                                 coordinates[
@@ -453,21 +453,24 @@ std::vector<double> buildPackedValues(
     const std::vector<size_t>& denseProduct,
     size_t uniqueCount,
     int dimensionCount,
-    int elementsPerDimension,
+    const std::vector<int>& dimensions,
     const std::vector<bool>& denseDimensions)
 {
-    const int lastDimension = dimensionCount - 1;
+    const int lastDimension =
+        dimensionCount - 1;
 
     if (!denseDimensions[lastDimension])
         return values;
 
-    const int previous = previousSparse[lastDimension];
+    const int previous =
+        previousSparse[lastDimension];
 
     size_t valueCountPacked;
 
     if (previous < 0)
     {
-        valueCountPacked = denseProduct[0];
+        valueCountPacked =
+            denseProduct[0];
     }
     else
     {
@@ -508,7 +511,7 @@ std::vector<double> buildPackedValues(
                     position =
                         position *
                         static_cast<size_t>(
-                            elementsPerDimension
+                            dimensions[k]
                             ) +
                         static_cast<size_t>(
                             coordinates[
@@ -536,7 +539,7 @@ std::vector<double> buildPackedValues(
                     position =
                         position *
                         static_cast<size_t>(
-                            elementsPerDimension
+                            dimensions[k]
                             ) +
                         static_cast<size_t>(
                             coordinates[
@@ -547,7 +550,8 @@ std::vector<double> buildPackedValues(
             }
         }
 
-        packedValues[position] = values[row];
+        packedValues[position] =
+            values[row];
     }
 
     return packedValues;
@@ -557,12 +561,14 @@ taco::Tensor<double> createTensorFromIndices(
     const ModeIndices& modeIndices,
     const std::vector<double>& packedValues,
     int dimensionCount,
-    int elementsPerDimension,
+    const std::vector<int>& dimensions,
     const std::vector<bool>& denseDimensions)
 {
     std::vector<taco::ModeIndex> tacoModeIndices;
 
-    tacoModeIndices.reserve(dimensionCount);
+    tacoModeIndices.reserve(
+        dimensionCount
+    );
 
     for (int d = 0; d < dimensionCount; ++d)
     {
@@ -596,11 +602,6 @@ taco::Tensor<double> createTensorFromIndices(
             dimensionCount,
             denseDimensions
         );
-
-    std::vector<int> dimensions(
-        dimensionCount,
-        elementsPerDimension
-    );
 
     taco::Index index(
         format,
@@ -640,6 +641,11 @@ taco::Tensor<double> buildTensorNew(
     int elementsPerDimension,
     const std::vector<bool>& denseDimensions)
 {
+    std::vector<int> dimensions(
+        dimensionCount,
+        elementsPerDimension
+    );
+
     std::vector<size_t> order = sortData(
         data,
         dimensionCount
@@ -656,13 +662,15 @@ taco::Tensor<double> buildTensorNew(
         values
     );
 
-    const size_t uniqueCount = values.size();
+    const size_t uniqueCount =
+        values.size();
 
-    std::vector<int> firstChanged = calculateFirstChanged(
-        coordinates,
-        uniqueCount,
-        dimensionCount
-    );
+    std::vector<int> firstChanged =
+        calculateFirstChanged(
+            coordinates,
+            uniqueCount,
+            dimensionCount
+        );
 
     std::vector<size_t> sparseIdxCount =
         calculateSparseIdxCount(
@@ -674,7 +682,7 @@ taco::Tensor<double> buildTensorNew(
     DimensionStructure dimensionStructure =
         calculateDimensionStructure(
             dimensionCount,
-            elementsPerDimension,
+            dimensions,
             denseDimensions
         );
 
@@ -684,36 +692,38 @@ taco::Tensor<double> buildTensorNew(
     const auto& denseProduct =
         dimensionStructure.denseProduct;
 
-    ModeIndices modeIndices = buildModeIndices(
-        coordinates,
-        firstChanged,
-        sparseIdxCount,
-        previousSparse,
-        denseProduct,
-        uniqueCount,
-        dimensionCount,
-        elementsPerDimension,
-        denseDimensions
-    );
+    ModeIndices modeIndices =
+        buildModeIndices(
+            coordinates,
+            firstChanged,
+            sparseIdxCount,
+            previousSparse,
+            denseProduct,
+            uniqueCount,
+            dimensionCount,
+            dimensions,
+            denseDimensions
+        );
 
-    std::vector<double> packedValues = buildPackedValues(
-        coordinates,
-        values,
-        firstChanged,
-        sparseIdxCount,
-        previousSparse,
-        denseProduct,
-        uniqueCount,
-        dimensionCount,
-        elementsPerDimension,
-        denseDimensions
-    );
+    std::vector<double> packedValues =
+        buildPackedValues(
+            coordinates,
+            values,
+            firstChanged,
+            sparseIdxCount,
+            previousSparse,
+            denseProduct,
+            uniqueCount,
+            dimensionCount,
+            dimensions,
+            denseDimensions
+        );
 
     return createTensorFromIndices(
         modeIndices,
         packedValues,
         dimensionCount,
-        elementsPerDimension,
+        dimensions,
         denseDimensions
     );
 }
@@ -759,4 +769,234 @@ bool compareTensors(
     }
 
     return tensor1String == tensor2String;
+}
+
+//Генерация данных в тензор любой размерности
+void GenerateToTensor(
+    taco::Tensor<double>& tensor,
+    int valueCount,
+    unsigned seed
+)
+{
+    const int dimensionCount =
+        tensor.getOrder();
+
+    const std::vector<int> dimensions =
+        tensor.getDimensions();
+
+    if (dimensionCount == 0)
+        throw std::runtime_error(
+            "Тензор не содержит измерений"
+        );
+
+    if (dimensions.size() !=
+        static_cast<size_t>(dimensionCount))
+    {
+        throw std::runtime_error(
+            "Некорректные размеры тензора"
+        );
+    }
+
+    for (int d = 0; d < dimensionCount; ++d)
+    {
+        if (dimensions[d] <= 0)
+        {
+            throw std::runtime_error(
+                "Размер измерения должен быть положительным"
+            );
+        }
+    }
+
+    const auto& modeFormats =
+        tensor.getFormat().getModeFormats();
+
+    std::vector<bool> denseDimensions(
+        dimensionCount
+    );
+
+    for (int d = 0; d < dimensionCount; ++d)
+    {
+        denseDimensions[d] =
+            modeFormats[d] ==
+            taco::ModeFormat::Dense;
+    }
+
+    std::vector<DataPoint> data;
+
+    data.reserve(valueCount);
+
+    std::mt19937 generator(seed);
+
+    std::vector<
+        std::uniform_int_distribution<int>
+    > coordinatesDistribution;
+
+    coordinatesDistribution.reserve(
+        dimensionCount
+    );
+
+    for (int d = 0; d < dimensionCount; ++d)
+    {
+        coordinatesDistribution.emplace_back(
+            0,
+            dimensions[d] - 1
+        );
+    }
+
+    std::uniform_int_distribution<int> value(
+        1,
+        1000
+    );
+
+    std::vector<int> coordinates(
+        dimensionCount
+    );
+
+    for (int n = 0; n < valueCount; ++n)
+    {
+        for (int d = 0; d < dimensionCount; ++d)
+        {
+            coordinates[d] =
+                coordinatesDistribution[d](
+                    generator
+                    );
+        }
+
+        data.push_back({
+            coordinates,
+            static_cast<double>(
+                value(generator)
+            )
+            });
+    }
+
+    std::vector<size_t> order =
+        sortData(
+            data,
+            dimensionCount
+        );
+
+    std::vector<int> sortedCoordinates;
+    std::vector<double> values;
+
+    prepareSortedData(
+        data,
+        order,
+        dimensionCount,
+        sortedCoordinates,
+        values
+    );
+
+    const size_t uniqueCount =
+        values.size();
+
+    std::vector<int> firstChanged =
+        calculateFirstChanged(
+            sortedCoordinates,
+            uniqueCount,
+            dimensionCount
+        );
+
+    std::vector<size_t> sparseIdxCount =
+        calculateSparseIdxCount(
+            firstChanged,
+            uniqueCount,
+            dimensionCount
+        );
+
+    DimensionStructure dimensionStructure =
+        calculateDimensionStructure(
+            dimensionCount,
+            dimensions,
+            denseDimensions
+        );
+
+    const auto& previousSparse =
+        dimensionStructure.previousSparse;
+
+    const auto& denseProduct =
+        dimensionStructure.denseProduct;
+
+    ModeIndices modeIndices =
+        buildModeIndices(
+            sortedCoordinates,
+            firstChanged,
+            sparseIdxCount,
+            previousSparse,
+            denseProduct,
+            uniqueCount,
+            dimensionCount,
+            dimensions,
+            denseDimensions
+        );
+
+    std::vector<double> packedValues =
+        buildPackedValues(
+            sortedCoordinates,
+            values,
+            firstChanged,
+            sparseIdxCount,
+            previousSparse,
+            denseProduct,
+            uniqueCount,
+            dimensionCount,
+            dimensions,
+            denseDimensions
+        );
+
+    taco::Format format =
+        tensor.getFormat();
+
+    std::vector<taco::ModeIndex> tacoModeIndices;
+
+    tacoModeIndices.reserve(
+        dimensionCount
+    );
+
+    for (int d = 0; d < dimensionCount; ++d)
+    {
+        if (denseDimensions[d])
+        {
+            tacoModeIndices.emplace_back(
+                std::vector<taco::Array>{
+                taco::makeArray(
+                    modeIndices.allIdx[d]
+                )
+            }
+            );
+        }
+        else
+        {
+            tacoModeIndices.emplace_back(
+                std::vector<taco::Array>{
+                taco::makeArray(
+                    modeIndices.allPos[d]
+                ),
+                    taco::makeArray(
+                        modeIndices.allIdx[d]
+                    )
+            }
+            );
+        }
+    }
+
+    taco::Index index(
+        format,
+        tacoModeIndices
+    );
+
+    taco::TensorStorage storage(
+        taco::type<double>(),
+        dimensions,
+        format,
+        taco::Literal(0.0)
+    );
+
+    storage.setIndex(index);
+
+    storage.setValues(
+        taco::makeArray(packedValues)
+    );
+
+    tensor.setStorage(storage);
 }
